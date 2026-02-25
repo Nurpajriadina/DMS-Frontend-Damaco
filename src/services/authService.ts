@@ -1,10 +1,12 @@
-import api from "axios";
+import axios from "axios";
 
-export const login = async (email: string, password: string) => {
-  await api.get("/sanctum/csrf-cookie");
-  return api.post("/api/login", { email, password });
-};
+const API_URL = "http://127.0.0.1:8000/api"; // sesuaikan
 
-export const logout = async () => {
-  return api.post("/api/logout");
+export const loginUser = async (email: string, password: string) => {
+    const response = await axios.post(`${API_URL}/login`, {
+        email: email,
+        password: password,
+    });
+
+    return response.data;
 };

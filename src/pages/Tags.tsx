@@ -1,9 +1,28 @@
-import MainLayout from "../layouts/MainLayout";
+import { useState } from "react";
+import Navbar from "../components/Navbar";
 
-export default function Tags() {
+const Tags: React.FC = () => {
+  const [tags, setTags] = useState<string[]>(["Important"]);
+
+  const addTag = () => {
+    setTags([...tags, `Tag-${tags.length + 1}`]);
+  };
+
   return (
-    <MainLayout>
-      <h2>Tags Page</h2>
-    </MainLayout>
+    <>
+      <Navbar />
+      <div style={{ padding: "30px", maxWidth: "1100px", margin: "auto" }}>
+        <h2>Tags</h2>
+        <button onClick={addTag}>Add Tag</button>
+
+        <ul>
+          {tags.map((tag, i) => (
+            <li key={i}>{tag}</li>
+          ))}
+        </ul>
+      </div>
+    </>
   );
-}
+};
+
+export default Tags;

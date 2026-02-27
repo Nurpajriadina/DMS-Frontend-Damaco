@@ -121,7 +121,6 @@ const Tags: React.FC = () => {
               <th>Id</th>
               <th>Name</th>
               <th>Color</th>
-              <th>Created By</th>
               <th>Action</th>
             </tr>
           </thead>
@@ -243,7 +242,6 @@ const Tags: React.FC = () => {
               <p><b>ID:</b> {viewTag.id}</p>
               <p><b>Name:</b> {viewTag.name}</p>
               <p><b>Color:</b> {viewTag.color}</p>
-              <p><b>Created By:</b> {viewTag.created_by}</p>
 
               <button
                 onClick={() => setViewTag(null)}

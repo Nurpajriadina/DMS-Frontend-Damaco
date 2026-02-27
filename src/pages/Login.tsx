@@ -17,10 +17,10 @@ const Login = () => {
 
     try {
       const data = await loginUser(email, password);
-
-      if (!data?.access_token) {
-        throw new Error();
-      }
+      
+      if (!data?.data.access_token) {
+          throw new Error();
+        }
 
       localStorage.setItem("token", data.access_token);
 

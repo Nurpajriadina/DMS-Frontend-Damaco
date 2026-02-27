@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Navbar from "../../components/Navbar";
 import { FaSave, FaTimes } from "react-icons/fa";
 
 const CreateTag: React.FC = () => {
@@ -16,7 +15,6 @@ const CreateTag: React.FC = () => {
 
   return (
     <>
-      <Navbar />
       <div style={{ padding: "30px", maxWidth: "1100px", margin: "auto" }}>
         <h2>Form Tags</h2>
         <p style={{ color: "gray" }}>

@@ -1,6 +1,4 @@
-import Navbar from "../components/Navbar";
 import Header from "../components/Header";
-import Footer from "../components/Footer";
 
 const Dashboard = () => {
   const container = {
@@ -25,7 +23,6 @@ const Dashboard = () => {
 
   return (
     <div style={{ background: "#f5f6f8", minHeight: "100vh" }}>
-      <Navbar />
       <Header />
 
       <div style={{ padding: "30px" }}>
@@ -207,8 +204,6 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
-
-      <Footer />
     </div>
   );
 };

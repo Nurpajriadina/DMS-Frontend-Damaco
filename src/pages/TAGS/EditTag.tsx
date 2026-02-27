@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import Navbar from "../../components/Navbar";
 import { FaSave, FaTimes } from "react-icons/fa";
 
 const EditTag: React.FC = () => {
@@ -18,7 +17,6 @@ const EditTag: React.FC = () => {
 
   return (
     <>
-      <Navbar />
       <div style={{ padding: "30px", maxWidth: "1100px", margin: "auto" }}>
         <h2>Form Tags</h2>
         <p style={{ color: "gray" }}>

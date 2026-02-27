@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Navbar from "../../components/Navbar";
 import { FaPlus, FaEye, FaEdit, FaTrash } from "react-icons/fa";
 
 interface TagType {
@@ -36,7 +35,6 @@ const Tags: React.FC = () => {
 
   return (
     <>
-      <Navbar />
       <div style={{ padding: "30px", maxWidth: "1100px", margin: "auto" }}>
         {/* TITLE + ADD BUTTON */}
         <div

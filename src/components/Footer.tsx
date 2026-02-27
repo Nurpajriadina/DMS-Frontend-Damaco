@@ -6,13 +6,20 @@ const Footer: React.FC = () => {
       style={{
         width: "100%",
         background: "#000",
-        color: "white",
-        textAlign: "center",
-        padding: "18px 0",
         marginTop: "40px",
       }}
     >
-      © 2026 DAMACO. All rights reserved.
+      <div
+        style={{
+          maxWidth: "1200px",
+          margin: "0 auto",
+          color: "white",
+          textAlign: "center",
+          padding: "18px 0",
+        }}
+      >
+        © 2026 DAMACO. All rights reserved.
+      </div>
     </div>
   );
 };

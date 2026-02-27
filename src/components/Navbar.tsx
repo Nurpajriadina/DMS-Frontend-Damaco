@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { FaHome, FaCog } from "react-icons/fa";
 import logo from "../assets/damaco-logo.png";
@@ -7,11 +7,29 @@ const Navbar: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [open, setOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const logout = () => {
     localStorage.removeItem("token");
-    navigate("/");
+    navigate("/login", { replace: true });
   };
+
+  // ✅ Close dropdown when click outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const menus = [
     { name: "Folder", path: "/folder" },
@@ -29,7 +47,6 @@ const Navbar: React.FC = () => {
         position: "sticky",
         top: 0,
         zIndex: 1000,
-        overflowX: "hidden",
       }}
     >
       <div
@@ -97,15 +114,17 @@ const Navbar: React.FC = () => {
           {/* Setting */}
           <FaCog style={{ cursor: "pointer", fontSize: "18px" }} />
 
-          {/* Profile */}
-          <div style={{ position: "relative" }}>
+          {/* PROFILE */}
+          <div
+            ref={dropdownRef}
+            style={{ position: "relative", cursor: "pointer" }}
+          >
             <div
               onClick={() => setOpen(!open)}
               style={{
                 display: "flex",
                 alignItems: "center",
                 gap: "10px",
-                cursor: "pointer",
               }}
             >
               <span>Super Admin</span>
@@ -124,26 +143,70 @@ const Navbar: React.FC = () => {
                 style={{
                   position: "absolute",
                   right: 0,
-                  top: "45px",
+                  top: "50px",
                   background: "white",
                   color: "black",
-                  borderRadius: "6px",
-                  boxShadow: "0 4px 10px rgba(0,0,0,0.15)",
-                  minWidth: "150px",
+                  borderRadius: "8px",
+                  boxShadow: "0 6px 18px rgba(0,0,0,0.2)",
+                  width: "200px",
+                  zIndex: 9999,
+                  padding: "15px",
                 }}
               >
+                {/* Profile Info */}
                 <div
-                  style={{ padding: "10px", cursor: "pointer" }}
-                  onClick={() => navigate("/profile")}
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    marginBottom: "15px",
+                  }}
                 >
-                  Profile
+                  <div
+                    style={{
+                      width: "60px",
+                      height: "60px",
+                      borderRadius: "50%",
+                      background: "#9ca3af",
+                      marginBottom: "8px",
+                    }}
+                  />
+                  <strong>Super Admin</strong>
                 </div>
-                <div
-                  style={{ padding: "10px", cursor: "pointer" }}
+
+                {/* Edit Profile */}
+                <button
+                  onClick={() => {
+                    navigate("/profile");
+                    setOpen(false);
+                  }}
+                  style={{
+                    width: "100%",
+                    padding: "8px",
+                    marginBottom: "8px",
+                    borderRadius: "6px",
+                    border: "1px solid #ddd",
+                    cursor: "pointer",
+                  }}
+                >
+                  Edit Profile
+                </button>
+
+                {/* Logout */}
+                <button
                   onClick={logout}
+                  style={{
+                    width: "100%",
+                    padding: "8px",
+                    borderRadius: "6px",
+                    border: "none",
+                    background: "#ef4444",
+                    color: "white",
+                    cursor: "pointer",
+                  }}
                 >
                   Logout
-                </div>
+                </button>
               </div>
             )}
           </div>

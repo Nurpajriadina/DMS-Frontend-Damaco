@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaPlus, FaEye, FaEdit, FaTrash } from "react-icons/fa";
 
@@ -6,37 +6,68 @@ interface TagType {
   id: number;
   name: string;
   color: string;
-  createdBy: string;
+  created_by: number;
 }
+
+const API_URL = "http://127.0.0.1:8000/api/v1";
 
 const Tags: React.FC = () => {
   const navigate = useNavigate();
 
-  const [tags, setTags] = useState<TagType[]>([
-    { id: 1, name: "test", color: "#000000", createdBy: "Super Admin" },
-    { id: 2, name: "important", color: "#111111", createdBy: "Super Admin" },
-  ]);
-
+  const [tags, setTags] = useState<TagType[]>([]);
   const [search, setSearch] = useState("");
   const [viewTag, setViewTag] = useState<TagType | null>(null);
 
-  const filteredTags = tags.filter((tag) =>
-    tag.name.toLowerCase().includes(search.toLowerCase())
-  );
+  useEffect(() => {
+    fetchTags();
+  }, []);
 
-  const deleteTag = (id: number) => {
+  const fetchTags = async () => {
+    try {
+      const token = localStorage.getItem("token");
+
+      const res = await fetch(`${API_URL}/tags`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const json = await res.json();
+      setTags(json.data || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const deleteTag = async (id: number) => {
     const confirmDelete = window.confirm(
       "Are you sure you want to delete this tag?"
     );
     if (!confirmDelete) return;
 
-    setTags(tags.filter((tag) => tag.id !== id));
+    try {
+      const token = localStorage.getItem("token");
+
+      await fetch(`${API_URL}/tags/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      fetchTags();
+    } catch (err) {
+      console.error(err);
+    }
   };
+
+  const filteredTags = tags.filter((tag) =>
+    tag.name.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <>
       <div style={{ padding: "30px", maxWidth: "1100px", margin: "auto" }}>
-        {/* TITLE + ADD BUTTON */}
         <div
           style={{
             display: "flex",
@@ -69,7 +100,6 @@ const Tags: React.FC = () => {
           </button>
         </div>
 
-        {/* SEARCH */}
         <div style={{ marginTop: "25px", marginBottom: "15px" }}>
           Search:{" "}
           <input
@@ -80,7 +110,6 @@ const Tags: React.FC = () => {
           />
         </div>
 
-        {/* TABLE */}
         <table
           width="100%"
           border={1}
@@ -115,7 +144,7 @@ const Tags: React.FC = () => {
                       {tag.color}
                     </span>
                   </td>
-                  <td>{tag.createdBy}</td>
+                  <td>{tag.created_by}</td>
                   <td style={{ display: "flex", gap: "8px" }}>
                     <FaEye
                       style={{ cursor: "pointer" }}
@@ -142,7 +171,6 @@ const Tags: React.FC = () => {
           </tbody>
         </table>
 
-        {/* FOOTER */}
         <div
           style={{
             marginTop: "10px",
@@ -189,7 +217,6 @@ const Tags: React.FC = () => {
           </div>
         </div>
 
-        {/* POPUP DETAIL (SAMA SEPERTI SEBELUMNYA) */}
         {viewTag && (
           <div
             style={{
@@ -216,7 +243,7 @@ const Tags: React.FC = () => {
               <p><b>ID:</b> {viewTag.id}</p>
               <p><b>Name:</b> {viewTag.name}</p>
               <p><b>Color:</b> {viewTag.color}</p>
-              <p><b>Created By:</b> {viewTag.createdBy}</p>
+              <p><b>Created By:</b> {viewTag.created_by}</p>
 
               <button
                 onClick={() => setViewTag(null)}

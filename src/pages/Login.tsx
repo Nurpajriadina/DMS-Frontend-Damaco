@@ -17,12 +17,9 @@ const Login = () => {
 
     try {
       const data = await loginUser(email, password);
-      
-      if (!data?.data.access_token) {
-          throw new Error();
-        }
+      console.log(data);
 
-      localStorage.setItem("token", data.access_token);
+      localStorage.setItem("token", data.token);
 
       // ✅ karena route dashboard kamu adalah "/"
       navigate("/", { replace: true });

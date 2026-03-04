@@ -19,7 +19,8 @@ const CreateTag: React.FC = () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          "Accept": "application/json",   // ✅ TAMBAHKAN INI
+          "Authorization": `Bearer ${token}`,
         },
         body: JSON.stringify({
           name,

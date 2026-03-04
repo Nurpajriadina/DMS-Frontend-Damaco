@@ -19,7 +19,7 @@ const Login = () => {
       const data = await loginUser(email, password);
       console.log(data);
 
-      localStorage.setItem("token", data.token);
+      localStorage.setItem("token", data.data.access_token);
 
       // ✅ karena route dashboard kamu adalah "/"
       navigate("/", { replace: true });

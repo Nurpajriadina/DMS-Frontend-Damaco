@@ -1,7 +1,7 @@
 import { Routes, Route, useLocation } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
-
+import ProtectedRoute from "./components/ProtectedRoute";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Folder from "./pages/FOLDER/Folders";
@@ -12,6 +12,7 @@ import Tags from "./pages/TAGS/Tags";
 import CreateTag from "./pages/TAGS/CreateTag";
 import EditTag from "./pages/TAGS/EditTag";
 import Users from "./pages/Users";
+import { Navigate } from "react-router-dom";
 
 function App() {
   const location = useLocation();
@@ -30,18 +31,104 @@ function App() {
       {!isLoginPage && <Navbar />}
 
       <div style={{ flex: 1 }}>
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/folder" element={<Folder />} />
-          <Route path="/create-folder" element={<CreateFolder />} />
-          <Route path="/file" element={<FilePage />} />
-          <Route path="/file/create" element={<CreateFile />} />
-          <Route path="/tags" element={<Tags />} />
-          <Route path="/tags/create" element={<CreateTag />} />
-          <Route path="/tags/edit/:id" element={<EditTag />} />
-          <Route path="/users" element={<Users />} />
-        </Routes>
+          <Routes>
+
+            {/* PUBLIC */}
+            <Route path="/login" element={<Login />} />
+
+            {/* ROOT CHECK */}
+            <Route
+              path="/"
+              element={
+                localStorage.getItem("token")
+                  ? <Navigate to="/dashboard" replace />
+                  : <Navigate to="/login" replace />
+              }
+            />
+
+            {/* PROTECTED */}
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/folder"
+              element={
+                <ProtectedRoute>
+                  <Folder />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/create-folder"
+              element={
+                <ProtectedRoute>
+                  <CreateFolder />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/file"
+              element={
+                <ProtectedRoute>
+                  <FilePage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/file/create"
+              element={
+                <ProtectedRoute>
+                  <CreateFile />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/tags"
+              element={
+                <ProtectedRoute>
+                  <Tags />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/tags/create"
+              element={
+                <ProtectedRoute>
+                  <CreateTag />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/tags/edit/:id"
+              element={
+                <ProtectedRoute>
+                  <EditTag />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/users"
+              element={
+                <ProtectedRoute>
+                  <Users />
+                </ProtectedRoute>
+              }
+            />
+
+          </Routes>
       </div>
 
       {!isLoginPage && <Footer />}

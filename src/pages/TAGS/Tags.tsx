@@ -124,50 +124,48 @@ const Tags: React.FC = () => {
               <th>Action</th>
             </tr>
           </thead>
-
-          <tbody>
-            {filteredTags.length > 0 ? (
-              filteredTags.map((tag) => (
-                <tr key={tag.id}>
-                  <td>{tag.id}</td>
-                  <td>{tag.name}</td>
-                  <td>
-                    <span
-                      style={{
-                        background: tag.color,
-                        color: "white",
-                        padding: "4px 8px",
-                        fontSize: "12px",
-                      }}
-                    >
-                      {tag.color}
-                    </span>
-                  </td>
-                  <td>{tag.created_by}</td>
-                  <td style={{ display: "flex", gap: "8px" }}>
-                    <FaEye
-                      style={{ cursor: "pointer" }}
-                      onClick={() => setViewTag(tag)}
-                    />
-                    <FaEdit
-                      style={{ cursor: "pointer" }}
-                      onClick={() => navigate(`/tags/edit/${tag.id}`)}
-                    />
-                    <FaTrash
-                      style={{ cursor: "pointer", color: "red" }}
-                      onClick={() => deleteTag(tag.id)}
-                    />
+            <tbody>
+              {filteredTags.length > 0 ? (
+                filteredTags.map((tag) => (
+                  <tr key={tag.id}>
+                    <td>{tag.id}</td>
+                    <td>{tag.name}</td>
+                    <td>
+                      <span
+                        style={{
+                          background: tag.color,
+                          color: "white",
+                          padding: "4px 8px",
+                          fontSize: "12px",
+                        }}
+                      >
+                        {tag.color}
+                      </span>
+                    </td>
+                    <td style={{ display: "flex", gap: "8px" }}>
+                      <FaEye
+                        style={{ cursor: "pointer" }}
+                        onClick={() => setViewTag(tag)}
+                      />
+                      <FaEdit
+                        style={{ cursor: "pointer" }}
+                        onClick={() => navigate(`/tags/edit/${tag.id}`)}
+                      />
+                      <FaTrash
+                        style={{ cursor: "pointer", color: "red" }}
+                        onClick={() => deleteTag(tag.id)}
+                      />
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={4} align="center">
+                    No Data
                   </td>
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={5} align="center">
-                  No Data
-                </td>
-              </tr>
-            )}
-          </tbody>
+              )}
+            </tbody>
         </table>
 
         <div

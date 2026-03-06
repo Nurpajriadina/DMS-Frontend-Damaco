@@ -6,7 +6,7 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Folder from "./pages/FOLDER/Folders";
 import CreateFolder from "./pages/FOLDER/CreateFolder";
-import FilePage from "./pages/FILE/Files";
+import File from"./pages/FILE/Files";
 import CreateFile from "./pages/FILE/CreateFile";
 import Tags from "./pages/TAGS/Tags";
 import CreateTag from "./pages/TAGS/CreateTag";
@@ -78,7 +78,7 @@ function App() {
               path="/file"
               element={
                 <ProtectedRoute>
-                  <FilePage />
+                  <File />
                 </ProtectedRoute>
               }
             />

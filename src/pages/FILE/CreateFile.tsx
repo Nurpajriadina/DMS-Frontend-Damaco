@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FaSave,
@@ -24,6 +24,8 @@ interface TagType {
   name: string;
 }
 
+const API_URL = "http://127.0.0.1:8000/api/v1";
+
 const CreateFile: React.FC = () => {
   const navigate = useNavigate();
   const editorRef = useRef<HTMLDivElement>(null);
@@ -32,13 +34,35 @@ const CreateFile: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedTag, setSelectedTag] = useState<TagType | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [availableTags, setAvailableTags] = useState<TagType[]>([]);
 
-  const availableTags: TagType[] = [
-    { id: 1, name: "Important" },
-    { id: 2, name: "Finance" },
-    { id: 3, name: "HR" },
-    { id: 4, name: "Legal" },
-  ];
+  // ✅ FETCH TAGS
+  useEffect(() => {
+    const fetchTags = async () => {
+      try {
+        const token = localStorage.getItem("token");
+
+        const res = await fetch(`${API_URL}/tags`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+          setAvailableTags(data.data || data); 
+        } else {
+          console.error("Failed fetch tags", data);
+        }
+      } catch (err) {
+        console.error("Error fetch tags", err);
+      }
+    };
+
+    fetchTags();
+  }, []);
 
   const handleSelectTag = (tag: TagType) => {
     setSelectedTag(tag);
@@ -59,6 +83,57 @@ const CreateFile: React.FC = () => {
     document.execCommand(command, false, value);
   };
 
+  const createFile = async () => {
+    if (!selectedFile) {
+      alert("Please choose file first");
+      return null;
+    }
+
+    if (!selectedTag) {
+      alert("Please select a tag");
+      return null;
+    }
+
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("token");
+
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+      formData.append("title", selectedFile.name);
+      formData.append("tag_id", selectedTag.id.toString());
+      formData.append("description", editorRef.current?.innerHTML || "");
+
+      const res = await fetch(`${API_URL}/documents`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        console.error(data);
+        alert("Upload failed");
+        return null;
+      }
+
+      return data;
+    } catch (err) {
+      console.error(err);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async () => {
+    const result = await createFile();
+    if (result) navigate("/file");
+  };
+
   return (
     <div style={{ padding: "30px", maxWidth: "1100px", margin: "auto" }}>
       <h2>Create File</h2>
@@ -72,23 +147,13 @@ const CreateFile: React.FC = () => {
           <FaFileUpload /> Upload File
         </label>
 
-        <div
-          style={{
-            display: "flex",
-            marginTop: "5px",
-            gap: "10px",
-          }}
-        >
+        <div style={{ display: "flex", marginTop: "5px", gap: "10px" }}>
           <input
             type="text"
             readOnly
             value={selectedFile ? selectedFile.name : ""}
             placeholder="No file chosen"
-            style={{
-              flex: 1,
-              padding: "8px",
-              border: "1px solid #ccc",
-            }}
+            style={{ flex: 1, padding: "8px", border: "1px solid #ccc" }}
           />
 
           <button
@@ -146,8 +211,14 @@ const CreateFile: React.FC = () => {
               border: "1px solid #ccc",
               background: "#fff",
               zIndex: 10,
+              maxHeight: "200px",
+              overflowY: "auto",
             }}
           >
+            {availableTags.length === 0 && (
+              <div style={{ padding: "8px" }}>No tags found</div>
+            )}
+
             {availableTags.map((tag) => (
               <div
                 key={tag.id}
@@ -170,15 +241,7 @@ const CreateFile: React.FC = () => {
       <div style={{ marginTop: "20px" }}>
         <label style={{ fontWeight: 600 }}>Description:</label>
 
-        {/* Toolbar (tanpa box gabungan) */}
-        <div
-          style={{
-            display: "flex",
-            gap: "10px",
-            margin: "10px 0",
-            flexWrap: "wrap",
-          }}
-        >
+        <div style={{ display: "flex", gap: "10px", margin: "10px 0", flexWrap: "wrap" }}>
           <button type="button" onClick={() => formatText("bold")}><FaBold /></button>
           <button type="button" onClick={() => formatText("italic")}><FaItalic /></button>
           <button type="button" onClick={() => formatText("underline")}><FaUnderline /></button>
@@ -222,6 +285,7 @@ const CreateFile: React.FC = () => {
       {/* Buttons */}
       <div style={{ display: "flex", gap: "10px", marginTop: "20px" }}>
         <button
+          onClick={handleSubmit}
           style={{
             background: "black",
             color: "white",
@@ -233,10 +297,11 @@ const CreateFile: React.FC = () => {
             cursor: "pointer",
           }}
         >
-          <FaSave /> Save
+          <FaSave /> {loading ? "Saving..." : "Save"}
         </button>
 
         <button
+          onClick={handleSubmit}
           style={{
             background: "#28a745",
             color: "white",
@@ -248,7 +313,7 @@ const CreateFile: React.FC = () => {
             cursor: "pointer",
           }}
         >
-          <FaCloudUploadAlt /> Save & Upload
+          <FaCloudUploadAlt /> {loading ? "Uploading..." : "Save & Upload"}
         </button>
 
         <button

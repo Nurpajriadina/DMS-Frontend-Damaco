@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FaPlus,
@@ -17,84 +17,117 @@ interface FolderType {
   status: string;
 }
 
+const API_URL = "http://127.0.0.1:8000/api/v1";
+
 const Folder: React.FC = () => {
   const navigate = useNavigate();
 
-  const [folders, setFolders] = useState<FolderType[]>([
-    {
-      id: 1,
-      name: "Test",
-      date: new Date().toLocaleDateString(),
-      createdBy: "Super Admin",
-      status: "Verified",
-    },
-    {
-      id: 2,
-      name: "Project",
-      date: new Date().toLocaleDateString(),
-      createdBy: "Super Admin",
-      status: "Verified",
-    },
-  ]);
-
+  const [folders, setFolders] = useState<FolderType[]>([]);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<number[]>([]);
   const [viewData, setViewData] = useState<FolderType | null>(null);
   const [editData, setEditData] = useState<FolderType | null>(null);
   const [editName, setEditName] = useState("");
 
-  const filteredFolders = folders.filter((folder) =>
-    folder.name.toLowerCase().includes(search.toLowerCase())
-  );
+  useEffect(() => {
+    fetchFolders();
+  }, []);
 
-  const toggleSelect = (id: number) => {
-    setSelected((prev) =>
-      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
-    );
-  };
+const fetchFolders = async () => {
+  try {
+    const token = localStorage.getItem("token");
 
-  const deleteFolder = (id: number) => {
-    if (!window.confirm("Are you sure you want to delete this folder?")) return;
-    setFolders(folders.filter((folder) => folder.id !== id));
-  };
+    const res = await fetch(`${API_URL}/folders`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
 
-  const handleExport = () => {
-    const selectedFolders = folders.filter((f) => selected.includes(f.id));
-    if (selectedFolders.length === 0) {
-      alert("Select folder first!");
+    const json = await res.json();
+
+    console.log("API RESPONSE:", json);
+
+    if (!res.ok) {
+      console.error("Fetch error:", json);
       return;
     }
 
-    const content = selectedFolders
-      .map(
-        (f) =>
-          `ID: ${f.id}
-Name: ${f.name}
-Date: ${f.date}
-Created By: ${f.createdBy}
-Status: ${f.status}
-----------------------`
-      )
-      .join("\n");
+     // 🔥 INI BAGIAN PENTING
+      const folderArray = Array.isArray(json)
+        ? json
+        : Array.isArray(json.data)
+        ? json.data
+        : [];
 
-    const blob = new Blob([content], { type: "text/plain" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = "folders.txt";
-    link.click();
+      const formatted = folderArray.map((f: any) => ({
+        id: f.id,
+        name: f.name,
+        date: f.created_at
+          ? new Date(f.created_at).toLocaleDateString()
+          : "-",
+        createdBy: f.user?.name ?? "Admin",
+        status: "Verified",
+      }));
+
+      setFolders(formatted);
+    } catch (err) {
+      console.error("Fetch Error:", err);
+    }
   };
 
-  const handleSaveEdit = () => {
-    if (!editData) return;
+  const deleteFolder = async (id: number) => {
+    if (!window.confirm("Are you sure you want to delete this folder?")) return;
 
-    setFolders(
-      folders.map((f) =>
-        f.id === editData.id ? { ...f, name: editName } : f
-      )
-    );
+    try {
+      const token = localStorage.getItem("token");
 
-    setEditData(null);
+      const res = await fetch(`${API_URL}/folders/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!res.ok) {
+        alert("Failed to delete");
+        return;
+      }
+
+      fetchFolders();
+    } catch (err) {
+      console.error(err);
+    }
   };
+
+  const handleSaveEdit = async () => {
+    if (!editData || !editName.trim()) return;
+
+    try {
+      const token = localStorage.getItem("token");
+
+      const res = await fetch(`${API_URL}/folders/${editData.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ name: editName }),
+      });
+
+      if (!res.ok) {
+        alert("Update failed");
+        return;
+      }
+
+      setEditData(null);
+      setEditName("");
+      fetchFolders();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const filteredFolders = folders.filter((folder) =>
+    folder.name.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <div style={{ padding: "30px", maxWidth: "1200px", margin: "auto" }}>
@@ -103,7 +136,6 @@ Status: ${f.status}
         This is a list of all file folder in the system.
       </p>
 
-      {/* TOP BAR */}
       <div
         style={{
           display: "flex",
@@ -113,10 +145,7 @@ Status: ${f.status}
         }}
       >
         <div style={{ display: "flex", gap: "10px" }}>
-          <button onClick={handleExport}>
-            <FaDownload /> Export
-          </button>
-          <button onClick={() => window.location.reload()}>
+          <button onClick={fetchFolders}>
             <FaSyncAlt /> Reload
           </button>
         </div>
@@ -136,14 +165,9 @@ Status: ${f.status}
         </button>
       </div>
 
-      {/* SEARCH */}
       Search:{" "}
-      <input
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-      />
+      <input value={search} onChange={(e) => setSearch(e.target.value)} />
 
-      {/* TABLE */}
       <table
         width="100%"
         border={1}
@@ -161,6 +185,7 @@ Status: ${f.status}
             <th>Action</th>
           </tr>
         </thead>
+
         <tbody>
           {filteredFolders.length > 0 ? (
             filteredFolders.map((folder) => (
@@ -169,7 +194,7 @@ Status: ${f.status}
                   <input
                     type="checkbox"
                     checked={selected.includes(folder.id)}
-                    onChange={() => toggleSelect(folder.id)}
+                    // onChange={() => toggleSelect(folder.id)}
                   />
                 </td>
                 <td>{folder.id}</td>
@@ -178,13 +203,10 @@ Status: ${f.status}
                 <td>{folder.createdBy}</td>
                 <td>{folder.status}</td>
                 <td style={{ display: "flex", gap: "15px" }}>
-                  {/* LIHAT */}
                   <FaEye
                     style={{ cursor: "pointer" }}
                     onClick={() => setViewData(folder)}
                   />
-
-                  {/* EDIT */}
                   <FaEdit
                     style={{ cursor: "pointer" }}
                     onClick={() => {
@@ -192,7 +214,6 @@ Status: ${f.status}
                       setEditName(folder.name);
                     }}
                   />
-
                   <FaTrash
                     onClick={() => deleteFolder(folder.id)}
                     style={{ cursor: "pointer", color: "red" }}
@@ -210,25 +231,6 @@ Status: ${f.status}
         </tbody>
       </table>
 
-      {/* PAGINATION */}
-      <div
-        style={{
-          marginTop: "10px",
-          display: "flex",
-          justifyContent: "space-between",
-        }}
-      >
-        <div style={{ color: "gray" }}>
-          Showing 1 to {filteredFolders.length} of {filteredFolders.length} entries
-        </div>
-        <div style={{ display: "flex", gap: "5px" }}>
-          <button>Previous</button>
-          <button style={{ background: "black", color: "white" }}>1</button>
-          <button>Next</button>
-        </div>
-      </div>
-
-      {/* POPUP DETAIL */}
       {viewData && (
         <div style={overlayStyle}>
           <div style={cardStyle}>
@@ -245,7 +247,6 @@ Status: ${f.status}
         </div>
       )}
 
-      {/* POPUP EDIT */}
       {editData && (
         <div style={overlayStyle}>
           <div style={cardStyle}>

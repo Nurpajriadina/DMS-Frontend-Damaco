@@ -12,6 +12,7 @@ import Tags from "./pages/TAGS/Tags";
 import CreateTag from "./pages/TAGS/CreateTag";
 import EditTag from "./pages/TAGS/EditTag";
 import Users from "./pages/Users";
+import MyShares from "./pages/MyShares";
 import { Navigate } from "react-router-dom";
 
 function App() {
@@ -124,6 +125,15 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Users />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/my-shares"
+              element={
+                <ProtectedRoute>
+                  <MyShares />
                 </ProtectedRoute>
               }
             />

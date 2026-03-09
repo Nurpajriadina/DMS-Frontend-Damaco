@@ -11,7 +11,8 @@ import CreateFile from "./pages/FILE/CreateFile";
 import Tags from "./pages/TAGS/Tags";
 import CreateTag from "./pages/TAGS/CreateTag";
 import EditTag from "./pages/TAGS/EditTag";
-import Users from "./pages/Users";
+import Users from "./pages/USER/Users";
+import CreateUser from "./pages/USER/CreateUser"; // 🔥 IMPORT CREATE USER DITAMBAHKAN DI SINI
 import MyShares from "./pages/MyShares";
 import { Navigate } from "react-router-dom";
 
@@ -129,8 +130,18 @@ function App() {
               }
             />
 
+            {/* 🔥 ROUTE BARU UNTUK HALAMAN CREATE USER */}
             <Route
-              path="/my-shares"
+              path="/users/create"
+              element={
+                <ProtectedRoute>
+                  <CreateUser />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/myshares"
               element={
                 <ProtectedRoute>
                   <MyShares />

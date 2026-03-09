@@ -7,6 +7,7 @@ import {
   FaEye,
   FaEdit,
   FaTrash,
+  FaShareAlt 
 } from "react-icons/fa";
 
 interface FolderType {
@@ -33,26 +34,23 @@ const Folder: React.FC = () => {
     fetchFolders();
   }, []);
 
-const fetchFolders = async () => {
-  try {
-    const token = localStorage.getItem("token");
+  const fetchFolders = async () => {
+    try {
+      const token = localStorage.getItem("token");
 
-    const res = await fetch(`${API_URL}/folders`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+      const res = await fetch(`${API_URL}/folders`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-    const json = await res.json();
+      const json = await res.json();
 
-    console.log("API RESPONSE:", json);
+      if (!res.ok) {
+        console.error("Fetch error:", json);
+        return;
+      }
 
-    if (!res.ok) {
-      console.error("Fetch error:", json);
-      return;
-    }
-
-     // 🔥 INI BAGIAN PENTING
       const folderArray = Array.isArray(json)
         ? json
         : Array.isArray(json.data)
@@ -62,8 +60,12 @@ const fetchFolders = async () => {
       const formatted = folderArray.map((f: any) => ({
         id: f.id,
         name: f.name,
-        date: f.created_at
-          ? new Date(f.created_at).toLocaleDateString()
+        // 🔥 PERBAIKAN TANGGAL: Sekarang memprioritaskan updated_at. 
+        // Jika baru diupdate, tanggalnya akan berubah.
+        date: f.updated_at 
+          ? new Date(f.updated_at).toLocaleDateString('id-ID') // (Bisa pakai 'id-ID' agar format tanggal DD/MM/YYYY)
+          : f.created_at
+          ? new Date(f.created_at).toLocaleDateString('id-ID')
           : "-",
         createdBy: f.user?.name ?? "Admin",
         status: "Verified",
@@ -72,6 +74,79 @@ const fetchFolders = async () => {
       setFolders(formatted);
     } catch (err) {
       console.error("Fetch Error:", err);
+    }
+  };
+
+  const toggleSelect = (id: number) => {
+    setSelected((prev) =>
+      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
+    );
+  };
+
+  const handleExport = () => {
+    if (folders.length === 0) {
+      alert("Tidak ada data untuk diexport!");
+      return;
+    }
+    
+    const headers = ["ID", "Folder Name", "Date", "Created By", "Status"];
+    const csvRows = [headers.join(",")];
+
+    folders.forEach(folder => {
+      csvRows.push(`${folder.id},"${folder.name}","${folder.date}","${folder.createdBy}","${folder.status}"`);
+    });
+
+    const blob = new Blob([csvRows.join("\n")], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.setAttribute("href", url);
+    a.setAttribute("download", "Data_Folders.csv");
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+  const handleShare = async () => {
+    if (selected.length === 0) {
+      alert("Silakan centang (select) minimal satu folder terlebih dahulu!");
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("token");
+      
+      const idToShare = selected[0]; 
+      
+      const randomShareToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+
+      const payload = {
+        document_id: idToShare, 
+        token: randomShareToken,
+        login_required: false,
+        created_by: 1 
+      };
+
+      const res = await fetch(`${API_URL}/shares`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const json = await res.json();
+
+      if (res.ok && json.success) {
+        alert("Link berhasil dibuat! Mengalihkan ke halaman My Shares...");
+        navigate("/myshares");
+      } else {
+        console.error("Gagal share:", json);
+        alert("Gagal membagikan data. Pastikan ID ini ada di tabel documents backend-mu.");
+      }
+    } catch (err) {
+      console.error("Share Error:", err);
+      alert("Terjadi kesalahan sistem saat mencoba share.");
     }
   };
 
@@ -119,6 +194,8 @@ const fetchFolders = async () => {
 
       setEditData(null);
       setEditName("");
+      // Karena kita memanggil fetchFolders() setelah update, 
+      // data akan otomatis ditarik ulang dari database dan tanggal terbarunya (updated_at) akan muncul.
       fetchFolders();
     } catch (err) {
       console.error(err);
@@ -145,8 +222,24 @@ const fetchFolders = async () => {
         }}
       >
         <div style={{ display: "flex", gap: "10px" }}>
-          <button onClick={fetchFolders}>
+          <button 
+            onClick={handleExport}
+            style={{ display: "flex", alignItems: "center", gap: "6px", padding: "8px 12px", border: "1px solid #ccc", background: "white", color: "black", cursor: "pointer", borderRadius: "4px" }}
+          >
+            <FaDownload /> Export ▼
+          </button>
+          <button 
+            onClick={fetchFolders}
+            style={{ display: "flex", alignItems: "center", gap: "6px", padding: "8px 12px", border: "1px solid #ccc", background: "white", color: "black", cursor: "pointer", borderRadius: "4px" }}
+          >
             <FaSyncAlt /> Reload
+          </button>
+          {/* 🔥 PERBAIKAN STYLE SHARE: Sekarang sama dengan Export dan Reload */}
+          <button 
+            onClick={handleShare}
+            style={{ display: "flex", alignItems: "center", gap: "6px", padding: "8px 12px", border: "1px solid #ccc", background: "white", color: "black", cursor: "pointer", borderRadius: "4px" }}
+          >
+            <FaShareAlt /> Share
           </button>
         </div>
 
@@ -158,7 +251,10 @@ const fetchFolders = async () => {
             padding: "8px 15px",
             border: "none",
             display: "flex",
+            alignItems: "center",
             gap: "6px",
+            borderRadius: "4px",
+            cursor: "pointer"
           }}
         >
           <FaPlus /> Add New
@@ -166,7 +262,11 @@ const fetchFolders = async () => {
       </div>
 
       Search:{" "}
-      <input value={search} onChange={(e) => setSearch(e.target.value)} />
+      <input 
+        value={search} 
+        onChange={(e) => setSearch(e.target.value)} 
+        style={{ padding: "5px", marginBottom: "10px" }}
+      />
 
       <table
         width="100%"
@@ -190,11 +290,12 @@ const fetchFolders = async () => {
           {filteredFolders.length > 0 ? (
             filteredFolders.map((folder) => (
               <tr key={folder.id}>
-                <td>
+                <td align="center">
                   <input
                     type="checkbox"
                     checked={selected.includes(folder.id)}
-                    // onChange={() => toggleSelect(folder.id)}
+                    onChange={() => toggleSelect(folder.id)}
+                    style={{ cursor: "pointer" }}
                   />
                 </td>
                 <td>{folder.id}</td>
@@ -259,6 +360,7 @@ const fetchFolders = async () => {
                 padding: "8px",
                 marginTop: "10px",
                 marginBottom: "20px",
+                boxSizing: "border-box"
               }}
             />
             <div style={{ display: "flex", justifyContent: "space-between" }}>

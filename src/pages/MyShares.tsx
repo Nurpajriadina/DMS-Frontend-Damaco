@@ -13,22 +13,23 @@ import {
   FaCopy 
 } from "react-icons/fa";
 
-// Interface disesuaikan dengan struktur database Laravel kamu
 interface ShareItem {
   id: number;
   token: string;
+  folder_id: number | null;
+  document_id: number | null;
   login_required: boolean;
   expires_at: string | null;
   created_at: string;
   updated_at: string;
+  folder: { name: string } | null;
   document: {
     title: string;
   } | null;
 }
 
-const API_URL = "http://127.0.0.1:8000/api/v1"; // Sesuaikan dengan routing API-mu
+const API_URL = "http://127.0.0.1:8000/api/v1";
 
-// Fungsi bantuan untuk mengubah tanggal menjadi format "22 hours ago"
 const timeSince = (dateString: string) => {
   const date = new Date(dateString);
   const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
@@ -50,7 +51,6 @@ const MyShares: React.FC = () => {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL Shares");
 
-  // Fetch data saat komponen dimuat
   useEffect(() => {
     fetchShares();
   }, []);
@@ -58,8 +58,6 @@ const MyShares: React.FC = () => {
   const fetchShares = async () => {
     try {
       const token = localStorage.getItem("token");
-      
-      // Mengambil data dari endpoint myShares (atau index, sesuaikan dengan route API kamu)
       const res = await fetch(`${API_URL}/my-shares`, { 
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -86,7 +84,6 @@ const MyShares: React.FC = () => {
       });
 
       if (res.ok) {
-        // Hapus data dari UI tanpa perlu reload halaman
         setShares((prev) => prev.filter((share) => share.id !== id));
       } else {
         alert("Gagal menghapus data!");
@@ -104,40 +101,39 @@ const MyShares: React.FC = () => {
   const handleReset = () => {
     setSearch("");
     setStatusFilter("ALL Shares");
-    fetchShares(); // Reload data dari server
+    fetchShares();
   };
 
-  // Logika Filter (Berdasarkan Search dan Status)
   const filteredShares = shares.filter((share) => {
-    const titleMatch = (share.document?.title || "").toLowerCase().includes(search.toLowerCase());
-    
-    // Logika penentuan status (Active/Expired)
+    const folderName = share.folder?.name || "";
+    const documentTitle = share.document?.title || "";
+    const nameMatch = 
+      folderName.toLowerCase().includes(search.toLowerCase()) || 
+      documentTitle.toLowerCase().includes(search.toLowerCase());
+
     const isExpired = share.expires_at ? new Date(share.expires_at) < new Date() : false;
     const currentStatus = isExpired ? "Expired" : "Active";
-    
     const statusMatch = statusFilter === "ALL Shares" || statusFilter === currentStatus;
 
-    return titleMatch && statusMatch;
+    return nameMatch && statusMatch;
   });
 
   return (
     <div style={{ padding: "30px", maxWidth: "1000px", margin: "auto", fontFamily: "sans-serif" }}>
       
-      {/* Header Banner */}
       <div style={{ background: "#4a4a4a", color: "white", padding: "20px", borderRadius: "8px", marginBottom: "20px" }}>
         <h2 style={{ margin: "0 0 5px 0", display: "flex", alignItems: "center", gap: "10px" }}>
-          <FaShareAlt /> My Shared Documents
+          <FaShareAlt /> My Shared Items
         </h2>
-        <p style={{ margin: 0, fontSize: "14px", color: "#ddd" }}>Manage all your shared documents link in one place</p>
+        <p style={{ margin: 0, fontSize: "14px", color: "#ddd" }}>Manage all your shared folders and documents link in one place</p>
       </div>
 
-      {/* Filter Section */}
       <div style={{ border: "1px solid #ccc", padding: "15px", borderRadius: "8px", display: "flex", gap: "15px", alignItems: "flex-end", marginBottom: "20px" }}>
         <div style={{ flex: 2 }}>
-          <label style={{ display: "block", fontSize: "12px", fontWeight: "bold", marginBottom: "5px" }}>Search Document</label>
+          <label style={{ display: "block", fontSize: "12px", fontWeight: "bold", marginBottom: "5px" }}>Search Item</label>
           <input 
             type="text" 
-            placeholder="Search by document name..." 
+            placeholder="Search by name..." 
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             style={{ width: "100%", padding: "8px", border: "1px solid #ccc", borderRadius: "4px" }}
@@ -155,19 +151,20 @@ const MyShares: React.FC = () => {
             <option>Expired</option>
           </select>
         </div>
+        
+        {/* Tombol Filter yang dipulihkan */}
         <button style={{ background: "black", color: "white", padding: "9px 20px", border: "none", borderRadius: "4px", display: "flex", alignItems: "center", gap: "5px", cursor: "pointer" }}>
           <FaFilter /> Filter
         </button>
+
         <button onClick={handleReset} style={{ background: "white", color: "black", padding: "9px 20px", border: "1px solid #ccc", borderRadius: "4px", display: "flex", alignItems: "center", gap: "5px", cursor: "pointer" }}>
           <FaSyncAlt /> Reset
         </button>
       </div>
 
-      {/* Share List */}
       <div>
         {filteredShares.length > 0 ? (
           filteredShares.map((share) => {
-            // Evaluasi Status dan Tipe Akses berdasarkan data database
             const isExpired = share.expires_at ? new Date(share.expires_at) < new Date() : false;
             const statusText = isExpired ? "Expired" : "Active";
             const accessType = share.login_required ? "Login Required" : "Public";
@@ -176,11 +173,20 @@ const MyShares: React.FC = () => {
             return (
               <div key={share.id} style={{ border: "1px solid #ccc", padding: "20px", borderRadius: "8px", marginBottom: "15px" }}>
                 
-                {/* Title & Badges */}
                 <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "15px" }}>
-                  <FaFolder style={{ color: "#007bff", fontSize: "20px" }} />
-                  <h3 style={{ margin: 0 }}>{share.document?.title || "Unknown Document"}</h3>
+                  {share.folder_id ? (
+                    <>
+                      <FaFolder style={{ color: "#f39c12", fontSize: "22px" }} />
+                      <h3 style={{ margin: 0 }}>{share.folder?.name || "Unknown Folder"}</h3>
+                    </>
+                  ) : (
+                    <>
+                      <FaFile style={{ color: "#007bff", fontSize: "22px" }} />
+                      <h3 style={{ margin: 0 }}>{share.document?.title || "Unknown Document"}</h3>
+                    </>
+                  )}
                 </div>
+
                 <div style={{ display: "flex", gap: "10px", marginBottom: "15px" }}>
                   <span style={{ background: isExpired ? "#fdecea" : "#e6f4ea", color: isExpired ? "#d93025" : "#1e8e3e", padding: "4px 10px", borderRadius: "15px", fontSize: "12px", fontWeight: "bold", display: "flex", alignItems: "center", gap: "5px" }}>
                     <span style={{ width: "6px", height: "6px", background: isExpired ? "#d93025" : "#1e8e3e", borderRadius: "50%", display: "inline-block" }}></span> {statusText}
@@ -190,7 +196,6 @@ const MyShares: React.FC = () => {
                   </span>
                 </div>
 
-                {/* URL Box */}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "#f0f7ff", border: "1px solid #b3d4ff", padding: "10px 15px", borderRadius: "6px", marginBottom: "15px" }}>
                   <a href={shareUrl} target="_blank" rel="noreferrer" style={{ color: "#007bff", textDecoration: "none", fontSize: "14px", wordBreak: "break-all" }}>
                     {shareUrl}
@@ -200,22 +205,18 @@ const MyShares: React.FC = () => {
                   </button>
                 </div>
 
-                {/* Stats */}
                 <div style={{ display: "flex", gap: "25px", fontSize: "13px", fontWeight: "bold", marginBottom: "20px" }}>
-                  <span style={{ display: "flex", alignItems: "center", gap: "5px", color: "gray" }}><FaRegEye /> 1 view</span>
-                  <span style={{ display: "flex", alignItems: "center", gap: "5px", color: "gray" }}><FaFile /> 1 file</span>
+                  <span style={{ display: "flex", alignItems: "center", gap: "5px", color: "gray" }}>
+                    {share.folder_id ? <FaFolder /> : <FaFile />} {share.folder_id ? "Folder" : "Document"}
+                  </span>
                   <span style={{ display: "flex", alignItems: "center", gap: "5px", color: "gray" }}><FaCalendarAlt /> Created {timeSince(share.created_at)}</span>
-                  <span style={{ display: "flex", alignItems: "center", gap: "5px", color: "gray" }}><FaClock /> Last accessed {timeSince(share.updated_at)}</span>
+                  <span style={{ display: "flex", alignItems: "center", gap: "5px", color: "gray" }}><FaClock /> Updated {timeSince(share.updated_at)}</span>
                 </div>
 
-                {/* Action Buttons */}
                 <div style={{ display: "flex", gap: "10px" }}>
                   <a href={shareUrl} target="_blank" rel="noreferrer" style={{ textDecoration: "none", background: "white", border: "1px solid #a250f5", color: "#a250f5", padding: "6px 12px", borderRadius: "4px", cursor: "pointer", display: "flex", alignItems: "center", gap: "5px", fontSize: "13px", fontWeight: "bold" }}>
                     <FaExternalLinkAlt /> Open Link
                   </a>
-                  <button style={{ background: "#007bff", border: "none", color: "white", padding: "6px 12px", borderRadius: "4px", cursor: "pointer", display: "flex", alignItems: "center", gap: "5px", fontSize: "13px", fontWeight: "bold" }}>
-                    <FaFolder /> View Document
-                  </button>
                   <button onClick={() => handleDelete(share.id)} style={{ background: "white", border: "1px solid #dc3545", color: "#dc3545", padding: "6px 12px", borderRadius: "4px", cursor: "pointer", display: "flex", alignItems: "center", gap: "5px", fontSize: "13px", fontWeight: "bold" }}>
                     <FaTrash /> Delete
                   </button>
@@ -226,7 +227,7 @@ const MyShares: React.FC = () => {
           })
         ) : (
           <div style={{ textAlign: "center", padding: "40px", color: "gray", border: "1px solid #ccc", borderRadius: "8px" }}>
-            Belum ada dokumen yang di-share.
+            Belum ada item yang di-share.
           </div>
         )}
       </div>

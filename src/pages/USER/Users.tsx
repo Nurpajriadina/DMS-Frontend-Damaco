@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { FaPlus, FaEye, FaEdit, FaTrash } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
 
 interface UserType {
   id: number;
@@ -11,6 +12,8 @@ interface UserType {
 }
 
 const Users: React.FC = () => {
+  const navigate = useNavigate();
+
   const [users, setUsers] = useState<UserType[]>([
     {
       id: 3,
@@ -78,6 +81,7 @@ const Users: React.FC = () => {
           </div>
 
           <button
+            onClick={() => navigate("/users/create")}
             style={{
               background: "black",
               color: "white",

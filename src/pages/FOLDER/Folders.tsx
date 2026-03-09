@@ -1,396 +1,86 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  FaPlus,
-  FaDownload,
-  FaSyncAlt,
-  FaEye,
-  FaEdit,
-  FaTrash,
-  FaShareAlt 
-} from "react-icons/fa";
-
-interface FolderType {
-  id: number;
-  name: string;
-  date: string;
-  createdBy: string;
-  status: string;
-}
+import { FaPlus, FaDownload, FaSyncAlt, FaEye, FaEdit, FaTrash } from "react-icons/fa";
 
 const API_URL = "http://127.0.0.1:8000/api/v1";
 
 const Folder: React.FC = () => {
   const navigate = useNavigate();
-
-  const [folders, setFolders] = useState<FolderType[]>([]);
+  const [folders, setFolders] = useState<any[]>([]);
   const [search, setSearch] = useState("");
-  const [selected, setSelected] = useState<number[]>([]);
-  const [viewData, setViewData] = useState<FolderType | null>(null);
-  const [editData, setEditData] = useState<FolderType | null>(null);
-  const [editName, setEditName] = useState("");
 
-  useEffect(() => {
-    fetchFolders();
-  }, []);
+  useEffect(() => { fetchFolders(); }, []);
 
   const fetchFolders = async () => {
     try {
       const token = localStorage.getItem("token");
-
       const res = await fetch(`${API_URL}/folders`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      const json = await res.json();
-
-      if (!res.ok) {
-        console.error("Fetch error:", json);
-        return;
-      }
-
-      const folderArray = Array.isArray(json)
-        ? json
-        : Array.isArray(json.data)
-        ? json.data
-        : [];
-
-      const formatted = folderArray.map((f: any) => ({
-        id: f.id,
-        name: f.name,
-        // 🔥 PERBAIKAN TANGGAL: Sekarang memprioritaskan updated_at. 
-        // Jika baru diupdate, tanggalnya akan berubah.
-        date: f.updated_at 
-          ? new Date(f.updated_at).toLocaleDateString('id-ID') // (Bisa pakai 'id-ID' agar format tanggal DD/MM/YYYY)
-          : f.created_at
-          ? new Date(f.created_at).toLocaleDateString('id-ID')
-          : "-",
-        createdBy: f.user?.name ?? "Admin",
-        status: "Verified",
-      }));
-
-      setFolders(formatted);
-    } catch (err) {
-      console.error("Fetch Error:", err);
-    }
-  };
-
-  const toggleSelect = (id: number) => {
-    setSelected((prev) =>
-      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
-    );
-  };
-
-  const handleExport = () => {
-    if (folders.length === 0) {
-      alert("Tidak ada data untuk diexport!");
-      return;
-    }
-    
-    const headers = ["ID", "Folder Name", "Date", "Created By", "Status"];
-    const csvRows = [headers.join(",")];
-
-    folders.forEach(folder => {
-      csvRows.push(`${folder.id},"${folder.name}","${folder.date}","${folder.createdBy}","${folder.status}"`);
-    });
-
-    const blob = new Blob([csvRows.join("\n")], { type: "text/csv" });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.setAttribute("href", url);
-    a.setAttribute("download", "Data_Folders.csv");
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  };
-
-  const handleShare = async () => {
-    if (selected.length === 0) {
-      alert("Silakan centang (select) minimal satu folder terlebih dahulu!");
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem("token");
-      
-      const idToShare = selected[0]; 
-      
-      const randomShareToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-
-      const payload = {
-        document_id: idToShare, 
-        token: randomShareToken,
-        login_required: false,
-        created_by: 1 
-      };
-
-      const res = await fetch(`${API_URL}/shares`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify(payload)
-      });
-
-      const json = await res.json();
-
-      if (res.ok && json.success) {
-        alert("Link berhasil dibuat! Mengalihkan ke halaman My Shares...");
-        navigate("/myshares");
-      } else {
-        console.error("Gagal share:", json);
-        alert("Gagal membagikan data. Pastikan ID ini ada di tabel documents backend-mu.");
-      }
-    } catch (err) {
-      console.error("Share Error:", err);
-      alert("Terjadi kesalahan sistem saat mencoba share.");
-    }
-  };
-
-  const deleteFolder = async (id: number) => {
-    if (!window.confirm("Are you sure you want to delete this folder?")) return;
-
-    try {
-      const token = localStorage.getItem("token");
-
-      const res = await fetch(`${API_URL}/folders/${id}`, {
-        method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
-
-      if (!res.ok) {
-        alert("Failed to delete");
-        return;
-      }
-
-      fetchFolders();
-    } catch (err) {
-      console.error(err);
-    }
+      const json = await res.json();
+      const folderArray = Array.isArray(json) ? json : json.data || [];
+      setFolders(folderArray);
+    } catch (err) { console.error(err); }
   };
 
-  const handleSaveEdit = async () => {
-    if (!editData || !editName.trim()) return;
-
-    try {
-      const token = localStorage.getItem("token");
-
-      const res = await fetch(`${API_URL}/folders/${editData.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ name: editName }),
-      });
-
-      if (!res.ok) {
-        alert("Update failed");
-        return;
-      }
-
-      setEditData(null);
-      setEditName("");
-      // Karena kita memanggil fetchFolders() setelah update, 
-      // data akan otomatis ditarik ulang dari database dan tanggal terbarunya (updated_at) akan muncul.
-      fetchFolders();
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const filteredFolders = folders.filter((folder) =>
-    folder.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredFolders = folders.filter((f) => f.name.toLowerCase().includes(search.toLowerCase()));
 
   return (
     <div style={{ padding: "30px", maxWidth: "1200px", margin: "auto" }}>
-      <h2 style={{ marginBottom: "5px" }}>Folders</h2>
-      <p style={{ marginTop: 0, color: "gray" }}>
-        This is a list of all file folder in the system.
-      </p>
+      <h2 style={{ marginBottom: "5px", fontWeight: "bold" }}>Folders</h2>
+      <p style={{ color: "gray", fontSize: "14px" }}>This is a list of all file folder in the system.</p>
 
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          marginTop: "20px",
-          marginBottom: "15px",
-        }}
-      >
+      <div style={{ display: "flex", justifyContent: "space-between", marginTop: "20px", marginBottom: "15px" }}>
         <div style={{ display: "flex", gap: "10px" }}>
-          <button 
-            onClick={handleExport}
-            style={{ display: "flex", alignItems: "center", gap: "6px", padding: "8px 12px", border: "1px solid #ccc", background: "white", color: "black", cursor: "pointer", borderRadius: "4px" }}
-          >
-            <FaDownload /> Export ▼
-          </button>
-          <button 
-            onClick={fetchFolders}
-            style={{ display: "flex", alignItems: "center", gap: "6px", padding: "8px 12px", border: "1px solid #ccc", background: "white", color: "black", cursor: "pointer", borderRadius: "4px" }}
-          >
-            <FaSyncAlt /> Reload
-          </button>
-          {/* 🔥 PERBAIKAN STYLE SHARE: Sekarang sama dengan Export dan Reload */}
-          <button 
-            onClick={handleShare}
-            style={{ display: "flex", alignItems: "center", gap: "6px", padding: "8px 12px", border: "1px solid #ccc", background: "white", color: "black", cursor: "pointer", borderRadius: "4px" }}
-          >
-            <FaShareAlt /> Share
-          </button>
+          <button style={btnWhite}><FaDownload /> Export ▼</button>
+          <button onClick={fetchFolders} style={btnWhite}><FaSyncAlt /> Reload</button>
         </div>
-
-        <button
-          onClick={() => navigate("/create-folder")}
-          style={{
-            background: "black",
-            color: "white",
-            padding: "8px 15px",
-            border: "none",
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-            borderRadius: "4px",
-            cursor: "pointer"
-          }}
-        >
-          <FaPlus /> Add New
-        </button>
+        <button onClick={() => navigate("/create-folder")} style={btnBlack}><FaPlus /> Add New</button>
       </div>
 
-      Search:{" "}
-      <input 
-        value={search} 
-        onChange={(e) => setSearch(e.target.value)} 
-        style={{ padding: "5px", marginBottom: "10px" }}
-      />
+      <div style={{ marginBottom: "15px" }}>
+        Search: <input value={search} onChange={(e) => setSearch(e.target.value)} style={{ padding: "5px", border: "1px solid #ccc" }} />
+      </div>
 
-      <table
-        width="100%"
-        border={1}
-        cellPadding={10}
-        style={{ borderCollapse: "collapse", marginTop: "10px" }}
-      >
-        <thead style={{ background: "#f0f0f0" }}>
+      {/* Tabel dengan garis yang diperbaiki */}
+      <table width="100%" style={{ borderCollapse: "collapse", border: "1px solid #ddd" }}>
+        <thead style={{ background: "#f8f9fa", borderBottom: "2px solid #ddd" }}>
           <tr>
-            <th>Select</th>
-            <th>Id</th>
-            <th>Folder Name</th>
-            <th>Date</th>
-            <th>Created By</th>
-            <th>Status</th>
-            <th>Action</th>
+            <th style={thStyle}>Select</th>
+            <th style={thStyle}>Id</th>
+            <th style={thStyle}>Folder Name</th>
+            <th style={thStyle}>Date</th>
+            <th style={thStyle}>Created By</th>
+            <th style={thStyle}>Status</th>
+            <th style={thStyle}>Action</th>
           </tr>
         </thead>
-
         <tbody>
-          {filteredFolders.length > 0 ? (
-            filteredFolders.map((folder) => (
-              <tr key={folder.id}>
-                <td align="center">
-                  <input
-                    type="checkbox"
-                    checked={selected.includes(folder.id)}
-                    onChange={() => toggleSelect(folder.id)}
-                    style={{ cursor: "pointer" }}
-                  />
-                </td>
-                <td>{folder.id}</td>
-                <td>{folder.name}</td>
-                <td>{folder.date}</td>
-                <td>{folder.createdBy}</td>
-                <td>{folder.status}</td>
-                <td style={{ display: "flex", gap: "15px" }}>
-                  <FaEye
-                    style={{ cursor: "pointer" }}
-                    onClick={() => setViewData(folder)}
-                  />
-                  <FaEdit
-                    style={{ cursor: "pointer" }}
-                    onClick={() => {
-                      setEditData(folder);
-                      setEditName(folder.name);
-                    }}
-                  />
-                  <FaTrash
-                    onClick={() => deleteFolder(folder.id)}
-                    style={{ cursor: "pointer", color: "red" }}
-                  />
-                </td>
-              </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan={7} align="center">
-                No Data
+          {filteredFolders.map((f) => (
+            <tr key={f.id} style={{ borderBottom: "1px solid #ddd" }}>
+              <td align="center" style={tdStyle}><input type="checkbox" /></td>
+              <td style={tdStyle}>{f.id}</td>
+              <td style={tdStyle}>{f.name}</td>
+              <td style={tdStyle}>{new Date(f.created_at).toLocaleDateString('id-ID')}</td>
+              <td style={tdStyle}>{f.user?.name || "Admin"}</td>
+              <td style={tdStyle}><span style={{ color: "green" }}>Verified</span></td>
+              <td style={{ ...tdStyle, display: "flex", gap: "15px" }}>
+                <FaEye style={{ cursor: "pointer", color: "#007bff" }} onClick={() => navigate(`/folder/${f.id}`)} />
+                <FaEdit style={{ cursor: "pointer" }} />
+                <FaTrash style={{ cursor: "pointer", color: "red" }} />
               </td>
             </tr>
-          )}
+          ))}
         </tbody>
       </table>
-
-      {viewData && (
-        <div style={overlayStyle}>
-          <div style={cardStyle}>
-            <h3>Folder Detail</h3>
-            <p><strong>ID:</strong> {viewData.id}</p>
-            <p><strong>Name:</strong> {viewData.name}</p>
-            <p><strong>Date:</strong> {viewData.date}</p>
-            <p><strong>Created By:</strong> {viewData.createdBy}</p>
-            <p><strong>Status:</strong> {viewData.status}</p>
-            <div style={{ marginTop: "20px", textAlign: "right" }}>
-              <button onClick={() => setViewData(null)}>Close</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {editData && (
-        <div style={overlayStyle}>
-          <div style={cardStyle}>
-            <h3>Edit Folder Name</h3>
-            <input
-              value={editName}
-              onChange={(e) => setEditName(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "8px",
-                marginTop: "10px",
-                marginBottom: "20px",
-                boxSizing: "border-box"
-              }}
-            />
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <button onClick={() => setEditData(null)}>Cancel</button>
-              <button onClick={handleSaveEdit}>Save</button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
 
-const overlayStyle: React.CSSProperties = {
-  position: "fixed",
-  top: 0,
-  left: 0,
-  width: "100%",
-  height: "100%",
-  background: "rgba(0,0,0,0.4)",
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "center",
-};
-
-const cardStyle: React.CSSProperties = {
-  background: "white",
-  padding: "30px",
-  width: "420px",
-  borderRadius: "8px",
-};
+// Styles
+const thStyle = { padding: "12px", textAlign: "left" as const, border: "1px solid #ddd" };
+const tdStyle = { padding: "12px", border: "1px solid #ddd" };
+const btnWhite = { display: "flex", alignItems: "center", gap: "5px", padding: "8px 12px", border: "1px solid #ccc", background: "white", cursor: "pointer", borderRadius: "4px" };
+const btnBlack = { background: "black", color: "white", padding: "8px 15px", border: "none", borderRadius: "4px", cursor: "pointer", display: "flex", alignItems: "center", gap: "5px" };
 
 export default Folder;

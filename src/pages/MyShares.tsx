@@ -105,6 +105,7 @@ const MyShares: React.FC = () => {
   };
 
   const filteredShares = shares.filter((share) => {
+    // Mencari berdasarkan nama folder atau judul dokumen
     const folderName = share.folder?.name || "";
     const documentTitle = share.document?.title || "";
     const nameMatch = 
@@ -152,8 +153,10 @@ const MyShares: React.FC = () => {
           </select>
         </div>
         
-        {/* Tombol Filter yang dipulihkan */}
-        <button style={{ background: "black", color: "white", padding: "9px 20px", border: "none", borderRadius: "4px", display: "flex", alignItems: "center", gap: "5px", cursor: "pointer" }}>
+        <button 
+            onClick={fetchShares}
+            style={{ background: "black", color: "white", padding: "9px 20px", border: "none", borderRadius: "4px", display: "flex", alignItems: "center", gap: "5px", cursor: "pointer" }}
+        >
           <FaFilter /> Filter
         </button>
 
@@ -168,10 +171,11 @@ const MyShares: React.FC = () => {
             const isExpired = share.expires_at ? new Date(share.expires_at) < new Date() : false;
             const statusText = isExpired ? "Expired" : "Active";
             const accessType = share.login_required ? "Login Required" : "Public";
-            const shareUrl = `https://dmsdigi.duniacommunica.co.id/share/${share.token}`;
+            // Ganti domain ini sesuai dengan URL frontend publik Anda
+            const shareUrl = `http://localhost:5173/share/${share.token}`;
             
             return (
-              <div key={share.id} style={{ border: "1px solid #ccc", padding: "20px", borderRadius: "8px", marginBottom: "15px" }}>
+              <div key={share.id} style={{ border: "1px solid #ccc", padding: "20px", borderRadius: "8px", marginBottom: "15px", background: "white" }}>
                 
                 <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "15px" }}>
                   {share.folder_id ? (

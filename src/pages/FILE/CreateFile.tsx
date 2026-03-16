@@ -127,7 +127,8 @@ const CreateFile: React.FC = () => {
       const res = await fetch(`${API_URL}/documents`, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${token}`,
+          "Authorization": `Bearer ${token}`,
+          "Accept": "application/json", // 🔥 INI KODE AJAIB YANG DITAMBAHKAN
         },
         body: formData,
       });
@@ -135,14 +136,14 @@ const CreateFile: React.FC = () => {
       const data = await res.json();
 
       if (!res.ok) {
-        console.error(data);
-        alert("Upload failed: " + (data.message || "Unknown error"));
+        console.error("Pesan Error Asli dari Laravel:", data);
+        alert("Upload failed: " + (data.message || JSON.stringify(data)));
         return null;
       }
 
       return data;
     } catch (err) {
-      console.error(err);
+      console.error("Error Fetch:", err);
       return null;
     } finally {
       setLoading(false);

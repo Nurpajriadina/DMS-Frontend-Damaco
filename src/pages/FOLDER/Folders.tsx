@@ -42,7 +42,6 @@ const Folder: React.FC = () => {
         Search: <input value={search} onChange={(e) => setSearch(e.target.value)} style={{ padding: "5px", border: "1px solid #ccc" }} />
       </div>
 
-      {/* Tabel dengan garis yang diperbaiki */}
       <table width="100%" style={{ borderCollapse: "collapse", border: "1px solid #ddd" }}>
         <thead style={{ background: "#f8f9fa", borderBottom: "2px solid #ddd" }}>
           <tr>
@@ -64,9 +63,9 @@ const Folder: React.FC = () => {
               <td style={tdStyle}>{new Date(f.created_at).toLocaleDateString('id-ID')}</td>
               <td style={tdStyle}>{f.user?.name || "Admin"}</td>
               <td style={tdStyle}><span style={{ color: "green" }}>Verified</span></td>
-              <td style={{ ...tdStyle, display: "flex", gap: "15px" }}>
+              <td style={{ ...tdStyle, display: "flex", gap: "15px", justifyContent: "center", alignItems: "center" }}>
                 <FaEye style={{ cursor: "pointer", color: "#007bff" }} onClick={() => navigate(`/folder/${f.id}`)} />
-                <FaEdit style={{ cursor: "pointer" }} />
+                <FaEdit style={{ cursor: "pointer", color: "#ffc107" }} />
                 <FaTrash style={{ cursor: "pointer", color: "red" }} />
               </td>
             </tr>
@@ -78,7 +77,7 @@ const Folder: React.FC = () => {
 };
 
 // Styles
-const thStyle = { padding: "12px", textAlign: "left" as const, border: "1px solid #ddd" };
+const thStyle = { padding: "12px", textAlign: "center" as const, border: "1px solid #ddd" };
 const tdStyle = { padding: "12px", border: "1px solid #ddd" };
 const btnWhite = { display: "flex", alignItems: "center", gap: "5px", padding: "8px 12px", border: "1px solid #ccc", background: "white", cursor: "pointer", borderRadius: "4px" };
 const btnBlack = { background: "black", color: "white", padding: "8px 15px", border: "none", borderRadius: "4px", cursor: "pointer", display: "flex", alignItems: "center", gap: "5px" };

@@ -1,7 +1,10 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { FaHome, FaCog } from "react-icons/fa";
+import axios from "axios";
 import logo from "../assets/damaco-logo.png";
+
+const API_URL = "http://127.0.0.1:8000/api/v1";
 
 const Navbar: React.FC = () => {
   const navigate = useNavigate();
@@ -9,12 +12,54 @@ const Navbar: React.FC = () => {
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // Default teks kuubah agar kita tahu ini file yang baru!
+  const [userName, setUserName] = useState("Menunggu Nama...");
+  const [userRole, setUserRole] = useState("🔍 Sedang melacak...");
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+
+        const res = await axios.get(`${API_URL}/me`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        const userData = res.data?.data || res.data;
+        
+        setUserName(userData?.name || "User Tanpa Nama");
+
+        // Proses Ekstrak Role
+        let foundRole = "Role Kosong";
+        
+        if (userData?.roles && Array.isArray(userData.roles) && userData.roles.length > 0) {
+            const r = userData.roles[0];
+            
+            if (typeof r === "string") {
+                foundRole = r; 
+            } else if (typeof r === "object" && r !== null) {
+                foundRole = r.name ? r.name : "Format Object Aneh"; 
+            }
+        } 
+
+        setUserRole(foundRole);
+
+      } catch (error) {
+        console.error("Gagal mengambil data profil:", error);
+        setUserName("Guest");
+        setUserRole("API Error");
+      }
+    };
+
+    fetchProfile();
+  }, []);
+
   const logout = () => {
     localStorage.removeItem("token");
     navigate("/login", { replace: true });
   };
 
-  // ✅ Close dropdown when click outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -40,13 +85,16 @@ const Navbar: React.FC = () => {
   ];
 
   return (
-    <div
+    <nav
       style={{
         width: "100%",
         backgroundColor: "#000",
         position: "sticky",
         top: 0,
+        left: 0,      // Memastikan menempel ke kiri
+        right: 0,     // Memastikan menempel ke kanan
         zIndex: 1000,
+        margin: 0,    // Menghilangkan margin yang mungkin diwarisi
       }}
     >
       <div
@@ -61,7 +109,6 @@ const Navbar: React.FC = () => {
           color: "white",
         }}
       >
-        {/* LEFT */}
         <div
           style={{
             display: "flex",
@@ -75,7 +122,6 @@ const Navbar: React.FC = () => {
           <h2 style={{ margin: 0 }}>DAMACO</h2>
         </div>
 
-        {/* CENTER MENU */}
         <div
           style={{
             display: "flex",
@@ -103,18 +149,12 @@ const Navbar: React.FC = () => {
           ))}
         </div>
 
-        {/* RIGHT */}
         <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
-          {/* Home */}
           <FaHome
             style={{ cursor: "pointer", fontSize: "18px" }}
             onClick={() => navigate("/")}
           />
-
-          {/* Setting */}
           <FaCog style={{ cursor: "pointer", fontSize: "18px" }} />
-
-          {/* PROFILE */}
           <div
             ref={dropdownRef}
             style={{ position: "relative", cursor: "pointer" }}
@@ -127,7 +167,9 @@ const Navbar: React.FC = () => {
                 gap: "10px",
               }}
             >
-              <span>Super Admin</span>
+              <span style={{ textTransform: "capitalize", fontWeight: "bold" }}>
+                {userRole}
+              </span>
               <div
                 style={{
                   width: "34px",
@@ -148,12 +190,11 @@ const Navbar: React.FC = () => {
                   color: "black",
                   borderRadius: "8px",
                   boxShadow: "0 6px 18px rgba(0,0,0,0.2)",
-                  width: "200px",
+                  width: "250px",
                   zIndex: 9999,
                   padding: "15px",
                 }}
               >
-                {/* Profile Info */}
                 <div
                   style={{
                     display: "flex",
@@ -171,10 +212,11 @@ const Navbar: React.FC = () => {
                       marginBottom: "8px",
                     }}
                   />
-                  <strong>Super Admin</strong>
+                  <strong style={{ fontSize: "16px" }}>{userName}</strong>
+                  <span style={{ fontSize: "12px", color: "gray", textTransform: "capitalize", textAlign: "center", wordBreak: "break-all" }}>
+                    {userRole}
+                  </span>
                 </div>
-
-                {/* Edit Profile */}
                 <button
                   onClick={() => {
                     navigate("/profile");
@@ -187,12 +229,11 @@ const Navbar: React.FC = () => {
                     borderRadius: "6px",
                     border: "1px solid #ddd",
                     cursor: "pointer",
+                    background: "white"
                   }}
                 >
                   Edit Profile
                 </button>
-
-                {/* Logout */}
                 <button
                   onClick={logout}
                   style={{
@@ -212,7 +253,7 @@ const Navbar: React.FC = () => {
           </div>
         </div>
       </div>
-    </div>
+    </nav>
   );
 };
 

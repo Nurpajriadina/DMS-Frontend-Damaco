@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { 
-  FaDownload, FaShareAlt, FaEdit, FaTrash, 
+  FaArrowLeft, FaShareAlt, FaEdit, FaTrash, 
   FaFileWord, FaFilePdf, FaFileExcel, FaFileAlt,
   FaCheckCircle, FaUser, FaClock, FaEye, FaEllipsisV 
 } from "react-icons/fa";
@@ -15,33 +15,94 @@ const FolderDetail: React.FC = () => {
   const [activeTab, setActiveTab] = useState("Files");
   const [folder, setFolder] = useState<any>(null);
   const [hoveredId, setHoveredId] = useState<number | null>(null);
+  
+  // State untuk seleksi file
+  const [selectedFiles, setSelectedFiles] = useState<number[]>([]);
+
+  const fetchDetail = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/folders/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = await res.json();
+      setFolder(json.data || json);
+    } catch (err) { console.error("Fetch Error:", err); }
+  };
 
   useEffect(() => {
-    const fetchDetail = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        const res = await fetch(`${API_URL}/folders/${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const json = await res.json();
-        setFolder(json.data || json);
-      } catch (err) { console.error("Fetch Error:", err); }
-    };
     if (id) fetchDetail();
   }, [id]);
 
-  // ✅ UPDATE: FUNGSI HANDLE SHARE (FOLDER_ID)
+  // ✅ FUNGSI EDIT FOLDER
+  const handleEditFolder = async () => {
+    const newName = prompt("Masukkan nama folder baru:", folder.name);
+    if (!newName || newName === folder.name) return;
+
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/folders/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ name: newName })
+      });
+      if (res.ok) {
+        alert("Folder berhasil diperbarui!");
+        fetchDetail();
+      }
+    } catch (err) { console.error(err); }
+  };
+
+  // ✅ FUNGSI DELETE SELECTED FILES
+  const handleDeleteSelected = async () => {
+    if (selectedFiles.length === 0) {
+      alert("Pilih file yang ingin dihapus terlebih dahulu!");
+      return;
+    }
+
+    if (!window.confirm(`Hapus ${selectedFiles.length} file yang dipilih?`)) return;
+
+    try {
+      const token = localStorage.getItem("token");
+      // Loop untuk menghapus setiap file yang dipilih
+      const deletePromises = selectedFiles.map(fileId => 
+        fetch(`${API_URL}/documents/${fileId}`, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      );
+
+      await Promise.all(deletePromises);
+      alert("File berhasil dihapus!");
+      setSelectedFiles([]); // Reset seleksi
+      fetchDetail(); // Reload data
+    } catch (err) {
+      console.error("Delete Error:", err);
+      alert("Gagal menghapus beberapa file.");
+    }
+  };
+
+  // ✅ FUNGSI TOGGLE SELECT
+  const toggleSelectFile = (fileId: number) => {
+    setSelectedFiles(prev => 
+      prev.includes(fileId) ? prev.filter(item => item !== fileId) : [...prev, fileId]
+    );
+  };
+
   const handleShare = async () => {
     try {
       const token = localStorage.getItem("token");
       const randomShareToken = Math.random().toString(36).substring(2, 15);
       
       const payload = {
-        folder_id: id, // Mengirimkan ID Folder
+        folder_id: id,
         document_id: null,
         token: randomShareToken,
         login_required: false,
-        created_by: 1, // Pastikan ini sesuai dengan ID user Anda
+        created_by: 1, 
       };
 
       const res = await fetch(`${API_URL}/shares`, {
@@ -54,43 +115,19 @@ const FolderDetail: React.FC = () => {
       });
 
       const json = await res.json();
-
       if (res.ok && json.success) {
         alert("Link share folder berhasil dibuat!");
-        navigate("/myshares"); // Navigasi ke halaman My Shares
-      } else {
-        console.error("Gagal share:", json);
-        alert("Gagal membagikan folder. Cek apakah kolom folder_id sudah ada di DB.");
+        navigate("/myshares");
       }
-    } catch (err) {
-      console.error("Share Error:", err);
-      alert("Terjadi kesalahan sistem.");
-    }
+    } catch (err) { console.error("Share Error:", err); }
   };
 
   const handleOpenFile = (doc: any) => {
     const filePath = doc.file_path || doc.path || doc.title; 
-
-    if (!filePath) {
-      alert("Maaf, informasi file tidak ditemukan di database.");
-      return;
-    }
-
+    if (!filePath) return;
     const cleanPath = filePath.startsWith('/') ? filePath.substring(1) : filePath;
     const fullUrl = `${BASE_URL}/storage/${cleanPath}`;
-    const ext = filePath.split('.').pop()?.toLowerCase();
-
-    try {
-      if (ext === 'pdf') {
-        window.open(fullUrl, "_blank");
-      } else if (['doc', 'docx', 'xls', 'xlsx'].includes(ext || '')) {
-        window.open(`https://docs.google.com/gview?url=${encodeURIComponent(fullUrl)}&embedded=true`, "_blank");
-      } else {
-        window.open(fullUrl, "_blank");
-      }
-    } catch (e) {
-      console.error("Gagal membuka file", e);
-    }
+    window.open(fullUrl, "_blank");
   };
 
   const getFileIcon = (filename: string | undefined) => {
@@ -115,10 +152,24 @@ const FolderDetail: React.FC = () => {
           </div>
         </div>
         <div style={{ display: "flex", gap: "10px" }}>
-          <button style={btnDownload}><FaDownload /> Download ▼</button>
+          {/* ✅ TOMBOL BACK (MENGGANTIKAN DOWNLOAD) */}
+          <button style={btnAction} onClick={() => navigate("/folder")} title="Back to Folders">
+            <FaArrowLeft />
+          </button>
+          
           <button style={btnAction} onClick={handleShare} title="Share Folder"><FaShareAlt /></button>
-          <button style={btnAction}><FaEdit /></button>
-          <button style={btnAction}><FaTrash /></button>
+          
+          {/* ✅ TOMBOL EDIT BERFUNGSI */}
+          <button style={btnAction} onClick={handleEditFolder} title="Edit Folder Name"><FaEdit /></button>
+          
+          {/* ✅ TOMBOL HAPUS BERFUNGSI (HAPUS FILE TERPILIH) */}
+          <button 
+            style={{ ...btnAction, color: selectedFiles.length > 0 ? "white" : "#4a5568", background: selectedFiles.length > 0 ? "#e53e3e" : "white" }} 
+            onClick={handleDeleteSelected}
+            title="Delete Selected Files"
+          >
+            <FaTrash /> {selectedFiles.length > 0 && `(${selectedFiles.length})`}
+          </button>
         </div>
       </div>
 
@@ -143,7 +194,6 @@ const FolderDetail: React.FC = () => {
         </div>
 
         <div style={{ padding: "30px" }}>
-          {/* TAB FILES */}
           {activeTab === "Files" && (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "25px" }}>
               {folder.documents && folder.documents.length > 0 ? (
@@ -155,8 +205,20 @@ const FolderDetail: React.FC = () => {
                     style={{
                       ...docCard,
                       transform: hoveredId === doc.id ? "translateY(-8px)" : "none",
+                      border: selectedFiles.includes(doc.id) ? "2px solid #3182ce" : "1px solid #edf2f7"
                     }}
                   >
+                    {/* ✅ CHECKBOX SELEKSI */}
+                    <div style={{ position: "absolute", top: "12px", left: "12px", zIndex: 5 }}>
+                        <input 
+                            type="checkbox" 
+                            style={{ width: "18px", height: "18px", cursor: "pointer" }}
+                            checked={selectedFiles.includes(doc.id)}
+                            onChange={() => toggleSelectFile(doc.id)}
+                            onClick={(e) => e.stopPropagation()} // Supaya tidak mentrigger view file
+                        />
+                    </div>
+
                     <div style={{ position: "absolute", top: "12px", right: "12px", color: "#cbd5e0" }}><FaEllipsisV /></div>
                     
                     <div style={{ background: hoveredId === doc.id ? "#ebf8ff" : "#f8fafc", borderRadius: "10px", padding: "35px", marginBottom: "15px", position: "relative" }}>
@@ -165,7 +227,6 @@ const FolderDetail: React.FC = () => {
                         {doc.title?.split('.').pop()?.toUpperCase() || "FILE"}
                       </div>
 
-                      {/* Hover Action Overlay */}
                       {hoveredId === doc.id && (
                         <div onClick={() => handleOpenFile(doc)} style={hoverOverlay}>
                           <FaEye size={24} />
@@ -190,22 +251,17 @@ const FolderDetail: React.FC = () => {
             </div>
           )}
 
-          {/* TAB VERIFICATION */}
+          {/* TAB LAINNYA TETAP SAMA... */}
           {activeTab === "Verification" && (
             <div style={{ padding: "40px", textAlign: "center" }}>
               <div style={verificationBox}>
                 <FaCheckCircle size={60} color="#38a169" />
                 <h2 style={{ margin: "20px 0 10px", color: "#2d3748" }}>Verified Successfully</h2>
                 <p style={{ color: "#718096" }}>This document has been approved</p>
-                <div style={verificationInfo}>
-                   <div style={infoRow}><FaUser color="#cbd5e0" /> <div><small style={{color: "#a0aec0"}}>Verified By</small><br/><strong>Super Admin</strong></div></div>
-                   <div style={infoRow}><FaClock color="#cbd5e0" /> <div><small style={{color: "#a0aec0"}}>Verified At</small><br/><strong>18/02/2026 09:11 AM</strong></div></div>
-                </div>
               </div>
             </div>
           )}
 
-          {/* TAB DETAIL FOLDER */}
           {activeTab === "Detail Folder" && (
             <div>
               <table width="100%" style={{ borderCollapse: "collapse" }}>
@@ -213,14 +269,8 @@ const FolderDetail: React.FC = () => {
                     <tr style={tableRow}><td style={tdLabel}>STATUS</td><td style={tdValue}><span style={badgeSuccess}>APPROVED</span></td></tr>
                     <tr style={tableRow}><td style={tdLabel}>CREATED BY</td><td style={tdValue}>Super Admin</td></tr>
                     <tr style={tableRow}><td style={tdLabel}>CREATED AT</td><td style={tdValue}>{new Date(folder.created_at).toLocaleString('id-ID')}</td></tr>
-                    <tr style={tableRow}><td style={tdLabel}>LAST UPDATED</td><td style={tdValue}>{new Date(folder.updated_at).toLocaleString('id-ID')}</td></tr>
                  </tbody>
               </table>
-              <div style={{ marginTop: "30px" }}>
-                 <h4 style={{ marginBottom: "10px", color: "#2d3748" }}>Description</h4>
-                 <div style={{ height: "1px", background: "#edf2f7", width: "100%" }}></div>
-                 <p style={{ color: "#718096", marginTop: "15px", fontSize: "14px" }}>{folder.description || "Tidak ada deskripsi."}</p>
-              </div>
             </div>
           )}
         </div>
@@ -230,16 +280,14 @@ const FolderDetail: React.FC = () => {
 };
 
 // --- STYLES ---
-const btnDownload = { background: "#c53030", color: "#fff", border: "none", padding: "10px 20px", borderRadius: "8px", fontWeight: "bold" as const, cursor: "pointer" };
-const btnAction = { background: "#fff", color: "#4a5568", border: "1px solid #e2e8f0", padding: "10px", borderRadius: "8px", cursor: "pointer", display: "flex", alignItems: "center" };
-const docCard = { background: "#fff", border: "1px solid #edf2f7", borderRadius: "16px", padding: "16px", textAlign: "center" as const, position: "relative" as const, transition: "0.3s ease", cursor: "pointer" };
+const btnBack = { background: "#4a5568", color: "#fff", border: "none", padding: "10px 20px", borderRadius: "8px", fontWeight: "bold" as const, cursor: "pointer", display: "flex", alignItems: "center", gap: "8px" };
+const btnAction = { background: "#fff", color: "#4a5568", border: "1px solid #e2e8f0", padding: "10px", borderRadius: "8px", cursor: "pointer", display: "flex", alignItems: "center", transition: "0.2s" };
+const docCard = { background: "#fff", border: "1px solid #edf2f7", borderRadius: "16px", padding: "16px", textAlign: "center" as const, position: "relative" as const, transition: "0.3s ease" };
 const hoverOverlay = { position: "absolute" as const, top: 0, left: 0, width: "100%", height: "100%", background: "rgba(49, 130, 206, 0.9)", borderRadius: "10px", display: "flex", flexDirection: "column" as const, justifyContent: "center", alignItems: "center", color: "#fff", zIndex: 2 };
 const docTitle = { margin: "5px 0", fontSize: "14px", fontWeight: "bold", color: "#2d3748", whiteSpace: "nowrap" as const, overflow: "hidden", textOverflow: "ellipsis" };
 const tagLabel = { background: "#edf2f7", padding: "2px 8px", borderRadius: "4px", fontSize: "10px", display: "inline-block", marginBottom: "5px", color: "#4a5568" };
 const docMeta = { fontSize: "11px", color: "#a0aec0", display: "flex", alignItems: "center", gap: "6px", marginTop: "3px" };
 const verificationBox = { background: "#f0fff4", padding: "40px", borderRadius: "16px", display: "inline-block", border: "1px solid #c6f6d5", minWidth: "350px" };
-const verificationInfo = { marginTop: "30px", textAlign: "left" as const, borderTop: "1px solid #c6f6d5", paddingTop: "20px" };
-const infoRow = { display: "flex", gap: "15px", alignItems: "center", marginBottom: "15px" };
 const tableRow = { borderBottom: "1px solid #edf2f7" };
 const tdLabel = { padding: "15px", color: "#718096", fontSize: "13px", fontWeight: "bold", width: "200px" };
 const tdValue = { padding: "15px", color: "#2d3748", fontSize: "14px" };

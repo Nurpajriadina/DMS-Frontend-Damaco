@@ -1,19 +1,72 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { FaSave, FaTimes } from "react-icons/fa";
+
+const API_URL = "http://127.0.0.1:8000/api/v1";
 
 const EditTag: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams();
 
-  const [name, setName] = useState("Tag " + id);
+  const [name, setName] = useState("");
   const [color, setColor] = useState("#000000");
+  const [loading, setLoading] = useState(true);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // ✅ FETCH DATA SEBELUM EDIT
+  useEffect(() => {
+    const fetchTagDetail = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(`${API_URL}/tags/${id}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        const json = await res.json();
+
+        if (res.ok) {
+          setName(json.data.name);
+          setColor(json.data.color);
+        } else {
+          console.error("Failed to fetch tag detail");
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTagDetail();
+  }, [id]);
+
+  // ✅ FUNGSI UPDATE (SUBMIT)
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert("Tag Updated!");
-    navigate("/tags");
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/tags/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ name, color }),
+      });
+
+      if (res.ok) {
+        alert("Tag Updated!");
+        navigate("/tags");
+      } else {
+        alert("Failed to update tag");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error updating tag");
+    }
   };
+
+  if (loading) return <div style={{ padding: "30px" }}>Loading...</div>;
 
   return (
     <>
@@ -33,6 +86,7 @@ const EditTag: React.FC = () => {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 style={{ width: "100%", padding: "8px" }}
+                required
               />
             </div>
 
@@ -40,10 +94,17 @@ const EditTag: React.FC = () => {
               <label><b>Color:</b></label>
               <br />
               <input
+                type="color" // Diubah ke type color agar lebih mudah memilih warna
+                value={color}
+                onChange={(e) => setColor(e.target.value)}
+                style={{ width: "100%", height: "40px", padding: "2px", cursor: "pointer" }}
+              />
+              <input
                 type="text"
                 value={color}
                 onChange={(e) => setColor(e.target.value)}
-                style={{ width: "100%", padding: "8px" }}
+                style={{ width: "100%", padding: "8px", marginTop: "10px" }}
+                placeholder="#000000"
               />
             </div>
 
@@ -58,6 +119,7 @@ const EditTag: React.FC = () => {
                   display: "flex",
                   alignItems: "center",
                   gap: "6px",
+                  cursor: "pointer",
                 }}
               >
                 <FaSave /> Save
@@ -74,6 +136,7 @@ const EditTag: React.FC = () => {
                   display: "flex",
                   alignItems: "center",
                   gap: "6px",
+                  cursor: "pointer",
                 }}
               >
                 <FaTimes /> Cancel

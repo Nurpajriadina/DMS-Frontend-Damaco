@@ -2,11 +2,14 @@ import React from "react";
 
 const Footer: React.FC = () => {
   return (
-    <div
+    <footer
       style={{
         width: "100%",
         background: "#000",
-        marginTop: "40px",
+        marginTop: "auto", // Menggunakan auto agar terdorong ke paling bawah
+        marginRight: 0,
+        marginLeft: 0,
+        display: "block",
       }}
     >
       <div
@@ -15,12 +18,12 @@ const Footer: React.FC = () => {
           margin: "0 auto",
           color: "white",
           textAlign: "center",
-          padding: "18px 0",
+          padding: "25px 0", // Sedikit lebih lebar agar terlihat elegan
         }}
       >
         © 2026 DAMACO. All rights reserved.
       </div>
-    </div>
+    </footer>
   );
 };
 

@@ -16,6 +16,8 @@ import Users from "./pages/USER/Users";
 import CreateUser from "./pages/USER/CreateUser";
 import MyShares from "./pages/MYSHARES/MyShares";
 import ViewShare from "./pages/MYSHARES/ViewShare";
+import Profile from "./pages/Profile";
+import Settings from "./pages/Settings";
 
 function App() {
   const location = useLocation();
@@ -68,6 +70,11 @@ function App() {
           
           {/* 🔥 SHARE ROUTE (TANPA PROTECTED ROUTE KARENA MENGURUS LOGIN SENDIRI) 🔥 */}
           <Route path="/share/:token" element={<ViewShare />} />
+
+          <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+
+          <Route 
+            path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
 
         </Routes>
       </div>
